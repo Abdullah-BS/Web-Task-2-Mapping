@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Robot Control Panel</title>
+    <style>
+        .Heading {
+            text-align: center;
+            font-size: 32px;
+            font-family: 'Courier New', Courier, monospace;
+            padding: 5px;
+        }
+    
+        .SubHeading {
+            text-align: center;
+            font-size: 24px;
+            font-family: 'Courier New', Courier, monospace;
+            padding: 5px;
+        }
+    
+        .buttondiv {
+            padding: 50px;
+            text-align: center;
+            background-color: white;
+            margin: 0 auto;
+            width: 300px;
+            border: 5px solid black;
+            border-radius: 50%;
+        }
+    
+        .buttonstyle {
+            padding: 30px 20px;
+            background-color: rgb(55, 50, 50);
+            color: white;
+            font-size: 100%;
+            cursor: pointer;
+            border-radius: 20px;
+            margin: 2px 5px;
+        }
+    
+        .canvasdiv {
+            background-color: white;
+            height: 500px;
+            width: 600px;
+            margin: 0 auto;
+            border: 5px solid black;
+            border-radius: 20px;
+        }
+    
+        form {
+            display: inline-block;
+        }
+    
+        .resetbutton {
+            padding: 30px 20px;
+            background-color: rgb(55, 50, 50);
+            color: white;
+            font-size: 100%;
+            cursor: pointer;
+            border-radius: 20px;
+            margin: 10px auto;
+            display: block;
+            width: 100px;
+        }
+    </style>
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+</head>
+<body style="background-color: rgb(212, 250, 216);">
+    <br><br>
+    
+    <div style="margin: 0 auto; background-color: rgb(255, 255, 255); width: 600px; border: 5px solid black; border-radius: 20px;">
+        <h1 class="Heading">Web and NLP</h1>
+        <h2 class="SubHeading"><i>Task 2: Robot Control Panel</i></h2>
+        <br>
+    </div>
+    
+    <br><br><br><br>
+     
+    <div class="buttondiv">
+        <button class="buttonstyle" title="Forward" onclick="sendDirection('forward')">Forward</button>
+        <br><br>
+        <button class="buttonstyle" title="Left" onclick="sendDirection('left')">Left</button>
+        <button class="buttonstyle" title="Stop" onclick="stop()">Stop</button>
+        <button class="buttonstyle" title="Right" onclick="sendDirection('right')">Right</button>
+        <br><br>
+        <button class="buttonstyle" title="Backward" onclick="sendDirection('backward')">Backward</button>
+    </div>
+    
+    <br>
+    <button class="resetbutton" title="Reset" onclick="reset()">Reset</button>
+    <br>
+    
+    <div class="canvasdiv">
+        <canvas id="canvas" width="600" height="500"></canvas>
+    </div>
+    
+    <br><br><br><br>
+    
+    <script>
+    
+        // get the canvas and its context
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+    
+        // define variables to keep track of the current position of the line
+        let currentX = canvas.width / 2;
+        let currentY = canvas.height / 2;
+    
+        // define a variable to control the length of each line segment
+        const lineSegmentLength = 40;
+    
+        // define a variable to keep track of the last drawn dot
+        let lastDotX = currentX;
+        let lastDotY = currentY;
+    
+        function sendDirection(direction) {
+            // set the color and line width
+            ctx.strokeStyle = 'black';
+            ctx.lineWidth = 5;
+    
+            // clear the canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+            // remove the red dot of the last line
+            ctx.beginPath();
+            ctx.arc(lastDotX, lastDotY, 5, 0, 2 * Math.PI);
+            ctx.fillStyle = 'white';
+            ctx.fill();
+    
+            // draw a line in the desired direction starting from the current position
+            switch (direction) {
+                case 'forward':
+                    ctx.beginPath();
+                    ctx.moveTo(currentX, currentY);
+                    ctx.lineTo(currentX, currentY - lineSegmentLength);
+                    ctx.stroke();
+                    currentY -= lineSegmentLength;
+                    break;
+                case 'backward':
+                    ctx.beginPath();
+                    ctx.moveTo(currentX, currentY);
+                    ctx.lineTo(currentX, currentY + lineSegmentLength);
+                    ctx.stroke();
+                    currentY += lineSegmentLength;
+                    break;
+                case 'left':
+                    ctx.beginPath();
+                    ctx.moveTo(currentX, currentY);
+                    ctx.lineTo(currentX - lineSegmentLength, currentY);
+                    ctx.stroke();
+                    currentX -= lineSegmentLength;
+                    break;
+                case 'right':
+                    ctx.beginPath();
+                    ctx.moveTo(currentX, currentY);
+                    ctx.lineTo(currentX + lineSegmentLength, currentY);
+                    ctx.stroke();
+                    currentX += lineSegmentLength;
+                    break;
+                default:
+                    break;
+            }
+    
+            // draw a red dot at the end of the line
+            ctx.beginPath();
+            ctx.arc(currentX, currentY, 5, 0, 2 * Math.PI);
+            ctx.fillStyle = 'red';
+            ctx.fill();
+    
+            // update lastDotX and lastDotY
+            lastDotX = currentX;
+            lastDotY = currentY;
+    
+            // send an AJAX request to update the database with the last clicked button
+            var xhttp = new XMLHttpRequest();
+            xhttp.open("POST", "update_database.php", true);
+            xhttp.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
+            xhttp.send("last_button=" + direction);
+            $.ajax({
+                url: 'store_command.php',
+                type: 'post',
+                data: {
+                    'command': direction
+                },
+                success: function(response) {
+                    console.log(response);
+                },
+                error: function(xhr, status, error) {
+                    console.log('Error: ' + error);
+                }
+            });
+        }
+    
+        function stop() {
+            // set the color and line width
+            ctx.strokeStyle = 'black';
+            ctx.lineWidth = 5;
+    
+            // draw a line in the current position to simulate stopping
+            ctx.beginPath();
+            ctx.moveTo(currentX, currentY);
+            ctx.lineTo(currentX, currentY);
+            ctx.stroke();
+            sendDirection('stop');
+        }
+    
+        function reset() {
+            // set the color and line width
+            ctx.strokeStyle = 'black';
+            ctx.lineWidth = 5;
+    
+            // clear the canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+            // reset the current position and the last drawn dot
+            currentX = canvas.width / 2;
+            currentY = canvas.height / 2;
+            lastDotX = currentX;
+            lastDotY = currentY;
+    
+            // draw a red dot at the center of the canvas
+            ctx.beginPath();
+            ctx.arc(currentX, currentY, 5, 0, 2 * Math.PI);
+            ctx.fillStyle = 'red';
+            ctx.fill();
+            sendDirection('reset');
+        }
+    </script>
+</body>
+</html>
